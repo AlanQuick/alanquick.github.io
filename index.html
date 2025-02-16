@@ -1,0 +1,70 @@
+$logFile = 'sms_log.txt';
+$maxMessages = 20; // 最多显示的消息数量
+
+// 处理清空日志的请求
+if (isset($_POST['clear_log'])) {
+    file_put_contents($logFile, '');
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// 如果收到GET请求
+if (!empty($_GET['content'])) {
+    $timestamp = date('Y-m-d H:i:s');
+    $content = $_GET['content'];
+    $logEntry = "$timestamp|$content
+    file_put_contents($logFile, $logEntry, FILE_APPEND);
+}
+
+// 读取日志文件
+$messages = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$messages = array_reverse($messages);
+$messages = array_slice($messages, 0, $maxMessages);
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
+        .message { background-color: white; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        .time { color: #333; }
+        .sender {color: #333;  }
+        .content { color: #333; }
+        .button-container { margin-top: 20px; }
+        button { padding: 10px 20px; margin-right: 10px; }
+    </style>
+    <script>
+        function refreshPage() {
+            location.reload();
+        }
+        function confirmClear() {
+            return confirm("确定要清空所有日志吗？");
+        }
+    </script>
+</head>
+<body>
+    <h1>Message</h1>
+    <?php foreach ($messages as $message): ?>
+        <?php 
+        list($time, $content) = explode('|', $message, 2);
+        $lines = explode("\n", $content);
+        $sender = $lines[0] ?? '';
+        $messageContent = $lines[1] ?? '';
+        ?>
+        <div class="message">
+            <div class="time"><?= htmlspecialchars($time) ?></div>
+            <div class="sender"><?= htmlspecialchars($sender) ?></div>
+            <div class="content"><?= nl2br(htmlspecialchars($messageContent)) ?></div>
+        </div>
+    <?php endforeach; ?>
+    <div class="button-container">
+        <button onclick="refreshPage()">刷新</button>
+        <form method="post" onsubmit="return confirmClear()" style="display: inline;">
+            <button type="submit" name="clear_log">清空日志</button>
+        </form>
+    </div>
+</body>
+</html>
